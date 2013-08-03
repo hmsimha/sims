@@ -72,6 +72,7 @@ class ImportCSV
     else
       @messages << "You cannot have enrollments or students.csv when skyward_students.csv is present"
       update_memcache
+    end
   end
 
   def process_file file_name
