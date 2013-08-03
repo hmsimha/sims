@@ -127,9 +127,9 @@ class ImportCSV
   end
 
   def move_to_import_directory file=@file
-    base_filename = File.basename(@file.original_filename)
+    base_filename = File.basename(file.original_filename)
     new_filename= File.join(@f_path,base_filename)
-    FileUtils.mv @file.path,new_filename
+    FileUtils.mv file.path,new_filename
     @filenames = [new_filename]
   end
 
