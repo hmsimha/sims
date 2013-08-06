@@ -66,8 +66,8 @@ class ImportCSV
 
   def process_skyward_students
     unless @filenames.include? File.join(@f_path, "enrollments.csv") or @filenames.include? File.join(@f_path, "students.csv")      
-      File.open(File.join(@f_path,'enrollments.csv'), 'a')
-      File.open(File.join(@f_path,'students.csv'), 'a')
+      File.open(File.join(@f_path,'enrollments.csv'), 'a') {}
+      File.open(File.join(@f_path,'students.csv'), 'a') {}
       @filenames << File.join(@f_path,'enrollments.csv') << File.join(@f_path,'students.csv')
     else
       @messages << "You cannot have enrollments or students.csv when skyward_students.csv is present"
