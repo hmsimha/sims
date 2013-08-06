@@ -38,6 +38,7 @@ class ImportCSV
   attr_reader :district, :messages, :filenames
 
   def initialize file, district
+    @filenames = []
     @district = district
     @messages = []
     @file = file
@@ -101,7 +102,8 @@ class ImportCSV
   end
 
   def sorted_filenames filenames=@filenames
-    @sorted_filenames ||= filenames.compact.sort_by do |f|
+    #@sorted_filenames ||= #this is failing a test that simulates unrealistic data
+    filenames.compact.sort_by do |f|
       2 * (FILE_ORDER.index(File.basename(f.downcase.gsub(APPEND_FILE_MATCHER,'.csv')))  || FILE_ORDER.length) +
       (f.match(APPEND_FILE_MATCHER) ? 1 : 0)
     end
@@ -109,17 +111,22 @@ class ImportCSV
 
   def identify_and_unzip
     FileUtils.mkdir_p(@f_path)
-    if @file.respond_to?(:original_filename)
-      try_to_unzip(@file.path, @file.original_filename) or move_to_import_directory if VALID_FILES.include? File.basename(@file.original_filename)
-    else  #passed in a string
-      try_to_unzip(@file, @file) or move_to_import_directory File.new(@file) if VALID_FILES.include? File.basename(@file) unless Dir.glob(@file).empty? #need to test this
+    unless @file.respond_to?(:original_filename) #in case passed in string
+      @file = File.open(@file) if File.exists?(@file)
+    end
+    if @file.is_a? File
+      try_to_unzip @file.path, @file.original_filename or 
+      move_to_import_directory 
+    else 
+      @messages << "Unknown file #{@file}"
+      update_memcache
     end
   end
 
-  def move_to_import_directory file=@file
-    base_filename = File.basename(file.original_filename)
-    new_filename= File.join(@f_path,base_filename)
-    FileUtils.mv file.path,new_filename
+  def move_to_import_directory
+    base_filename = File.basename(@file.original_filename)
+    new_filename = File.join(@f_path, base_filename)
+    FileUtils.mv file.path, new_filename
     @filenames = [new_filename]
   end
 
