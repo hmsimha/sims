@@ -1,7 +1,7 @@
 class ImportCSV
   require File.expand_path 'lib/csv_importer/base_system_flags.rb'
 
-  APPEND_FILE_MATCHER = /_appends?/
+  APPEND_FILE_MATCHER = /_appends?.*/
   DELETE_COUNT_THRESHOLD = 5
   DELETE_PERCENT_THRESHOLD = 0.3
   STRIP_FILTER = lambda{ |field| field.to_s.strip} #formats as string with leading and trailing whitespace removed
