@@ -11,6 +11,7 @@ class ImportCSV
   DEFAULT_CSV_OPTS={:skip_blanks=>true, :headers =>true, :header_converters => [STRIP_FILTER,:symbol], :converters => [STRIP_FILTER,NULLIFY_FILTER,HEXIFY_FILTER]}
   SKIP_SIZE_COUNT = ['enrollment','system_flag','role', 'extended_profile']
   EOF = '@@END UPLOAD RESULTS@@'
+  SKYWARD_ERROR_MSG = "You cannot have enrollments or students.csv when skyward_students.csv is present"
 
   FILE_ORDER = ['schools.csv', 'students.csv', 'users.csv', 'groups.csv','system_flags.csv', 'user_school_assignments.csv']
 
@@ -47,7 +48,7 @@ class ImportCSV
     b= Benchmark.measure do
       identify_and_unzip
       process_skyward_students if @filenames.include? File.join(@f_path, "skyward_students.csv")
-      sorted_filenames.each {|f| process_file f}
+      sorted_filenames.each {|f| process_file f} unless @messages.last == SKYWARD_ERROR_MSG 
       FileUtils.rm_rf @f_path
       @district.students.update_all(:updated_at => Time.now) #expire any student related cache
       @district.users.update_all(:updated_at => Time.now) #expire any user related cache
@@ -70,7 +71,7 @@ class ImportCSV
       File.open(File.join(@f_path,'students.csv'), 'a') {}
       @filenames << File.join(@f_path,'enrollments.csv') << File.join(@f_path,'students.csv')
     else
-      @messages << "You cannot have enrollments or students.csv when skyward_students.csv is present"
+      @messages << SKYWARD_ERROR_MSG
       update_memcache
     end
   end
@@ -97,16 +98,6 @@ class ImportCSV
     base_file_name = File.basename(file_name).gsub(APPEND_FILE_MATCHER,'.csv')
     c="CSVImporter/#{base_file_name.sub(/.csv/,'')}".classify.pluralize
     @messages << c.constantize.new(file_name,@district).import
-  end
-
-  def file_exists? file_name, model_name
-    if File.exist?(file_name)
-      true
-    else
-      @messages << "#{file_name} did not exist when attempting to load #{model_name.pluralize} from csv"
-      false
-    end
-
   end
 
   def sorted_filenames filenames=@filenames
