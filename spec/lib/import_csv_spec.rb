@@ -72,45 +72,45 @@ describe ImportCSV do
   describe "process_file" do
     it 'should call the csv importer with the filename if it is a known importer' do
       i = ImportCSV.new("users.csv", District.new)
-      i.should_receive("csv_importer").with("users.csv")
+      i.should_receive("import_csv").with("users.csv")
       i.send :process_file, "users.csv"
     end
     it 'should call the csv importer with the filename if it is a known importer ending in appends' do
       i = ImportCSV.new("users_appends.csv", District.new)
-      i.should_receive("csv_importer").with("users_appends.csv")
+      i.should_receive("import_csv").with("users_appends.csv")
       i.send :process_file, "users_appends.csv"
       i = ImportCSV.new("users_append.csv", District.new)
-      i.should_receive("csv_importer").with("users_append.csv")
+      i.should_receive("import_csv").with("users_append.csv")
       i.send :process_file, "users_append.csv"
     end
 
     it 'should return an error if the importer/filename is unknown' do
       i = ImportCSV.new("users.csv", District.new)
-      i.should_not_receive("csv_importer").with("users.csv")
+      i.should_not_receive("import_csv").with("users.csv")
       i.send :process_file, "users_invalid.csv"
     end
 
     it 'should return an error fi the importer/filename is unknown and the filename ends in appends' do
       i = ImportCSV.new("users.csv", District.new)
-      i.should_not_receive("csv_importer")
+      i.should_not_receive("import_csv")
       i.send :process_file, "users_invalid_appends.csv"
       i.send :process_file, "users_invalid_append.csv"
     end
   end
 
-  describe "csv_importer" do
+  describe "import_csv" do
     it "should call the csv importer when the filename does not contain _appends"  do
       i = ImportCSV.new("users.csv", d=District.new)
       CSVImporter::Users.should_receive(:new).with("users.csv",d).and_return(mock(:import => nil))
-      i.send :csv_importer, "users.csv"
+      i.send :import_csv, "users.csv"
     end
 
     it "should call the csv importer when the filename does contain _appends" do
       i = ImportCSV.new("ext_test_scores_appends.csv", d=District.new)
       CSVImporter::ExtTestScores.should_receive(:new).with("ext_test_scores_appends.csv",d).and_return(mock(:import => nil))
-      i.send :csv_importer, "ext_test_scores_appends.csv"
+      i.send :import_csv, "ext_test_scores_appends.csv"
       CSVImporter::ExtTestScores.should_receive(:new).with("ext_test_scores_append.csv",d).and_return(mock(:import => nil))
-      i.send :csv_importer, "ext_test_scores_append.csv"
+      i.send :import_csv, "ext_test_scores_append.csv"
 
     end
 
