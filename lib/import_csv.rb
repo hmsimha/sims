@@ -1,7 +1,7 @@
 class ImportCSV
   require File.expand_path 'lib/csv_importer/base_system_flags.rb'
 
-  APPEND_FILE_MATCHER = /_appends?.*/
+  APPEND_FILE_MATCHER = /_appends?\.csv/
   DELETE_COUNT_THRESHOLD = 5
   DELETE_PERCENT_THRESHOLD = 0.3
   STRIP_FILTER = lambda{ |field| field.to_s.strip} #formats as string with leading and trailing whitespace removed
@@ -79,7 +79,7 @@ class ImportCSV
     base_file_name = File.basename(file_name)
     @messages << "Processing file: #{base_file_name}"
     update_memcache
-    f = base_file_name.downcase.gsub(APPEND_FILE_MATCHER,'')
+    f = base_file_name.downcase.gsub(APPEND_FILE_MATCHER,'.csv')
     case f
     when *csv_importers
       csv_importer file_name
@@ -96,8 +96,8 @@ class ImportCSV
   end
 
   def csv_importer file_name
-    base_file_name = File.basename(file_name).gsub(APPEND_FILE_MATCHER,'') #"/path/to/file/students_appendix.csv" => "studentsix.csv"
-    c="CSVImporter/#{base_file_name.sub(/.csv/,'')}".classify.pluralize #"studentsix.csv" => "CSVImporter::Studentsixes"
+    base_file_name = File.basename(file_name).gsub(APPEND_FILE_MATCHER,'.csv')
+    c="CSVImporter/#{base_file_name.sub(/.csv/,'')}".classify.pluralize
     @messages << c.constantize.new(file_name,@district).import
   end
 
@@ -112,8 +112,8 @@ class ImportCSV
   end
 
   def sorted_filenames filenames=@filenames
-    filenames.compact.sort_by do |f|
-      2 * (FILE_ORDER.index(File.basename(f.downcase.gsub(APPEND_FILE_MATCHER,'')))  || FILE_ORDER.length) +
+    @sorted_filenames ||= filenames.compact.sort_by do |f|
+      2 * (FILE_ORDER.index(File.basename(f.downcase.gsub(APPEND_FILE_MATCHER,'.csv')))  || FILE_ORDER.length) +
       (f.match(APPEND_FILE_MATCHER) ? 1 : 0)
     end
   end
