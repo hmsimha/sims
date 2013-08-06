@@ -82,26 +82,24 @@ class ImportCSV
     f = base_file_name.downcase.gsub(APPEND_FILE_MATCHER,'.csv')
     case f
     when *csv_importers
-      csv_importer file_name
+      import_csv file_name
     else
-      msg = "Unknown file #{base_file_name}" #how is this not causing an error?
+      @messages << "Unknown file #{base_file_name}"
+      update_memcache
     end
-
-    @messages << msg
-    update_memcache
   end
 
   def csv_importers
     VALID_FILES
   end
 
-  def csv_importer file_name
+  def import_csv file_name
     base_file_name = File.basename(file_name).gsub(APPEND_FILE_MATCHER,'.csv')
     c="CSVImporter/#{base_file_name.sub(/.csv/,'')}".classify.pluralize
     @messages << c.constantize.new(file_name,@district).import
   end
 
-  def file_exists? file_name,model_name
+  def file_exists? file_name, model_name
     if File.exist?(file_name)
       true
     else
@@ -144,13 +142,10 @@ class ImportCSV
     if originalname =~ /\.zip$/
       @messages << "Trying to unzip #{originalname}"
       update_memcache
-      #potential replacement for next two lines follows
-      @messages << "Problem with zipfile #{originalname}" unless
-        system "unzip  -qq -o #{filename} -d #{@f_path}"
-      #unless system "unzip  -qq -o #{filename} -d #{@f_path}"
-        #@messages << "Problem with zipfile #{originalname}"
-        #update_memcache
-      #end
+      unless system "unzip  -qq -o #{filename} -d #{@f_path}"
+        @messages << "Problem with zipfile #{originalname}"
+        update_memcache
+      end
       @filenames = Dir.glob(File.join(@f_path, "*.csv"))
     else
       false
