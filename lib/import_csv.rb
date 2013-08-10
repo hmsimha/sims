@@ -48,11 +48,15 @@ class ImportCSV
   def import
     b= Benchmark.measure do
       identify_and_unzip
-      process_skyward_students if @filenames.include? File.join(@f_path, "skyward_students.csv")
-      sorted_filenames.each {|f| process_file f} unless @messages.last == SKYWARD_ERROR_MSG 
+      begin
+        process_skyward_students if @filenames.include? File.join(@f_path, "skyward_students.csv")
+        sorted_filenames.each {|f| process_file f}
+        @district.students.update_all(:updated_at => Time.now) #expire any student related cache
+        @district.users.update_all(:updated_at => Time.now) #expire any user related cache
+      rescue CSVImporter::SkywardExtraneousFile
+        @messages << SKYWARD_ERROR_MSG
+      end
       FileUtils.rm_rf @f_path
-      @district.students.update_all(:updated_at => Time.now) #expire any student related cache
-      @district.users.update_all(:updated_at => Time.now) #expire any user related cache
       @messages << "No csv files uploaded" if sorted_filenames.blank?
     end
     @messages << b
@@ -67,14 +71,12 @@ class ImportCSV
   end
 
   def process_skyward_students
-    unless @filenames.include? File.join(@f_path, "enrollments.csv") or @filenames.include? File.join(@f_path, "students.csv")      
-      File.open(File.join(@f_path,'enrollments.csv'), 'a') {}
-      File.open(File.join(@f_path,'students.csv'), 'a') {}
-      @filenames << File.join(@f_path,'enrollments.csv') << File.join(@f_path,'students.csv')
-    else
-      @messages << SKYWARD_ERROR_MSG
-      update_memcache
+    if @filenames.include? File.join(@f_path, "enrollments.csv") or @filenames.include? File.join(@f_path, "students.csv")
+      raise CSVImporter::SkywardExtraneousFile , "You cannot have enrollments or students.csv when skyward_students.csv is present"
     end
+    File.open(File.join(@f_path,'enrollments.csv'), 'a') {}
+    File.open(File.join(@f_path,'students.csv'), 'a') {}
+    @filenames << File.join(@f_path,'enrollments.csv') << File.join(@f_path,'students.csv')
   end
 
   def process_file file_name
@@ -84,7 +86,7 @@ class ImportCSV
     f = base_file_name.downcase.gsub(APPEND_FILE_MATCHER,'.csv')
     case f
     when *csv_importers
-      import_csv file_name
+      csv_importer file_name
     else
       @messages << "Unknown file #{base_file_name}"
       update_memcache
@@ -95,7 +97,7 @@ class ImportCSV
     VALID_FILES
   end
 
-  def import_csv file_name
+  def csv_importer file_name
     base_file_name = File.basename(file_name).gsub(APPEND_FILE_MATCHER,'.csv')
     c="CSVImporter/#{base_file_name.sub(/.csv/,'')}".classify.pluralize
     @messages << c.constantize.new(file_name,@district).import
