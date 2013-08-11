@@ -54,7 +54,7 @@ class ImportCSV
         @district.students.update_all(:updated_at => Time.now) #expire any student related cache
         @district.users.update_all(:updated_at => Time.now) #expire any user related cache
       rescue CSVImporter::SkywardExtraneousFile
-        @messages << SKYWARD_ERROR_MSG
+        @messages << "Your upload could not be processed: " + SKYWARD_ERROR_MSG
       end
       FileUtils.rm_rf @f_path
       @messages << "No csv files uploaded" if sorted_filenames.blank?
@@ -72,7 +72,7 @@ class ImportCSV
 
   def process_skyward_students
     if @filenames.include? File.join(@f_path, "enrollments.csv") or @filenames.include? File.join(@f_path, "students.csv")
-      raise CSVImporter::SkywardExtraneousFile , "You cannot have enrollments or students.csv when skyward_students.csv is present"
+      raise CSVImporter::SkywardExtraneousFile, SKYWARD_ERROR_MSG
     end
     File.open(File.join(@f_path,'enrollments.csv'), 'a') {}
     File.open(File.join(@f_path,'students.csv'), 'a') {}
